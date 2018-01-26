@@ -103,8 +103,8 @@ public class CurveSlicer implements ICurveSlicer
         bestSliceIndex = sliceHere;
       }
 
-      System.out.println(sliceHere + ":" + beforeFit + ", " + afterFit + ", "
-          + (beforeFit + afterFit));
+      System.out.println(sliceHere + "," + beforeFit + ", " + afterFit + ", "
+          + (beforeFit + afterFit) + ", " + bearings.get(sliceHere));
 
     }
 
