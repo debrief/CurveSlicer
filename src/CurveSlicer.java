@@ -17,6 +17,148 @@ public class CurveSlicer implements ICurveSlicer
     this.bearings = values;
   }
 
+  /** the start/end indices of a period of time
+   * 
+   * @author Ian
+   *
+   */
+  private static class TPeriod implements Comparable<TPeriod>
+  {
+    public int start;
+    public int end;
+
+    public TPeriod(final int start, final int end)
+    {
+      this.start = start;
+      this.end = end;
+    }
+
+    @Override
+    public int compareTo(final TPeriod other)
+    {
+      return Integer.compare(start, other.start);
+    }
+
+    @Override
+    public boolean equals(final Object arg0)
+    {
+      if (arg0 instanceof TPeriod)
+      {
+        final TPeriod other = (TPeriod) arg0;
+        return other.start == start && other.end == end;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    @Override
+    public int hashCode()
+    {
+      return start * 10000 + end;
+    }
+
+    @Override
+    public String toString()
+    {
+      return "Period:" + start + "-" + end;
+    }
+
+    public String toString(List<Long> thisTimes)
+    {
+
+      if (start >= thisTimes.size() || end >= thisTimes.size() || start == -1
+          || end == -1)
+      {
+        System.out.println("Trouble");
+        return "Period:" + start + "-" + end + ", " + thisTimes.size();// + thisTimes.get(start) +
+                                                                       // "secs- " +
+                                                                       // thisTimes.get(end) +
+                                                                       // "secs";
+      }
+      return "Period:" + start + "-" + end + ", " + thisTimes.get(start)
+          + "secs- " + thisTimes.get(end) + "secs";
+    }
+
+  }
+
+  /**
+   * find the period of data with the lowest rate of change of rate of change of bearing (the
+   * smoothest part of the curve)
+   * 
+   * @param legTimes
+   * @param legBearings
+   * @return
+   */
+  private static TPeriod findLowestRateIn(final List<Long> legTimes,
+      final List<Double> legBearings)
+  {
+    int window;
+    final int len = legTimes.size();
+    if (len < 20)
+    {
+      window = 5;
+    }
+    else if (len < 40)
+    {
+      window = 7;
+    }
+    else
+    {
+      window = 12;
+    }
+
+    final TPeriod res;
+    if (legTimes.size() <= window)
+    {
+      res = null;
+    }
+    else
+    {
+      int lowestStart = -1;
+      double lowestRate = Double.POSITIVE_INFINITY;
+
+      for (int i = 0; i < legTimes.size() - window; i++)
+      {
+        // find the sum of the bearing changes in this time period
+        double runningSum = 0;
+        Double lastB = null;
+        for (int j = i + 1; j <= i + window; j++)
+        {
+          double bDelta = Math.abs(legBearings.get(j) - legBearings.get(j - 1));
+
+          // check for passing through 360
+          if (bDelta > 180)
+          {
+            bDelta = Math.abs(bDelta - 360d);
+          }
+
+          if (lastB != null)
+          {
+            double bDelta2 = Math.abs(lastB - bDelta);
+            double tDelta = legTimes.get(j) - legTimes.get(j - 1);
+            double bDelta2Rate = bDelta2 / tDelta;
+
+            runningSum += (bDelta2Rate);
+          }
+          lastB = bDelta;
+
+        }
+
+        // System.out.println(legTimes.get(i) + ", " + runningSum);
+
+        if (runningSum < lowestRate)
+        {
+          lowestStart = i;
+          lowestRate = runningSum;
+        }
+      }
+      res = new TPeriod(lowestStart, lowestStart + window);
+    }
+    return res;
+  }
+
   @Override
   public List<Zone> getZones(final CurveFunction function, final double fit,
       final long minLeg)
