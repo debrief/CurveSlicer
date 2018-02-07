@@ -10,8 +10,6 @@ public class CurveSlicer implements ICurveSlicer
 
   private final List<Long> times;
   private final List<Double> bearings;
-  private Normaliser _timeNormaliser;
-  private Normaliser _bearingNormaliser;
 
   public CurveSlicer(final List<Long> timeStamps, final List<Double> values)
   {
@@ -44,8 +42,7 @@ public class CurveSlicer implements ICurveSlicer
     }
 
     // create the normaliser for the two datasets
-    _timeNormaliser = new Normaliser(dTimes, false);
-    _bearingNormaliser = new Normaliser(bearings, true);
+    final double tStart = dTimes.get(0);
 
     // ok, collate the data
     final double[] normalTimes = new double[sampleCount];
@@ -54,18 +51,14 @@ public class CurveSlicer implements ICurveSlicer
 
     for (int i = 0; i < sampleCount; i++)
     {
-      double time = _timeNormaliser.normalise(dTimes.get(i));
-      double freq = _bearingNormaliser.normalise(bearings.get(i));
-
-      normalTimes[i] = time;
-      normalBearings[i] = freq;
+      normalTimes[i] = dTimes.get(i) - tStart;
+      normalBearings[i] = bearings.get(i);
       weights[i] = 1d;
     }
 
     // Set solver parameters
-    final double initialBearing = _bearingNormaliser.normalise(bearings.get(0));
     double[] initialParameters = new double[]
-    {initialBearing, 1, 1};
+    {bearings.get(0), 1, 1};
 
     // ok, now create our optimizer
     LMOptimizer optimizer =
